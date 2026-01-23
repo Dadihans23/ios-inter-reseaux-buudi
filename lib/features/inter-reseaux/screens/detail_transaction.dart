@@ -12,16 +12,65 @@ class TransactionDetailScreen extends StatelessWidget {
 
   const TransactionDetailScreen({Key? key, required this.transaction}) : super(key: key);
 
-  String _getLogo(String wallet) {
-    final op = wallet.replaceAll('-ci', '').toLowerCase();
-    switch (op) {
-      case 'wave': return Images.wavelogo;
-      case 'moov': return Images.moovlogo;
-      case 'orange-money': return Images.orangelogo;
-      case 'mtn': return Images.mtnlogo;
-      default: return Images.wavelogo;
-    }
+   String _getLogo(String wallet) {
+  // 1. Nettoyage : enlève tout suffixe pays et tirets
+  String cleaned = wallet
+      .replaceAll('-ci', '')
+      .replaceAll('-sn', '')
+      .replaceAll('-bj', '')
+      .replaceAll('-tg', '')
+      .replaceAll('-bf', '')
+      .replaceAll('-ml', '')
+      .replaceAll('-momo', '')     // pour mtn-momo-bj
+      .replaceAll('money-', '')    // pour orange-money-*
+      .toLowerCase()
+      .trim();
+
+  // 2. Mapping clair et exhaustif
+  switch (cleaned) {
+    // Côte d'Ivoire
+    case 'wave':
+    case 'wavesn':
+      return Images.wavelogo;
+
+    case 'moov':
+    case 'moovbj':
+    case 'moovtg':
+    case 'moovbf':
+      return Images.moovlogo;
+
+    case 'orange':
+    case 'orangemoney':
+    case 'orangesn':
+    case 'orangebf':
+    case 'orangeml':
+      return Images.orangelogo;
+
+    case 'mtn':
+    case 'mtn-benin':
+    case 'mtnmomobj':
+      return Images.mtnlogo;
+
+    // Sénégal spécifiques
+    case 'freemoney':
+    case 'free-money':
+      return Images.freemoney;
+
+    case 'emoney':
+    case 'e-money':
+      return Images.emoney;
+
+    // Togo spécifique
+    case 'tmoney':
+    case 't-money':
+      return Images.tmoney;
+
+    // Fallback si inconnu
+    default:
+      print("Logo inconnu pour wallet: $wallet (cleaned: $cleaned)");
+      return Images.wavelogo; // ou une icône "inconnu" si tu veux
   }
+}
 
   String _formatOperator(String wallet) {
     return wallet

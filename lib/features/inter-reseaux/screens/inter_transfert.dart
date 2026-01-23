@@ -1,3 +1,4 @@
+// lib/view/screens/inter_transfer_screen.dart
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -5,6 +6,7 @@ import 'package:six_cash/helper/route_helper.dart';
 import 'package:six_cash/util/images.dart';
 import '../../inter-reseaux/controller/inter_transfert_controller.dart';
 import 'package:get/get.dart';
+import 'package:six_cash/features/setting/controllers/profile_screen_controller.dart';
 
 class InterTransferScreen extends StatefulWidget {
   const InterTransferScreen({Key? key}) : super(key: key);
@@ -14,7 +16,7 @@ class InterTransferScreen extends StatefulWidget {
 }
 
 class _InterTransferScreenState extends State<InterTransferScreen> {
-  // Liste des opérateurs
+  // Liste des opérateurs (inchangée)
   final List<Map<String, dynamic>> operators = [
     {'name': 'Wave', 'logo': Images.wavelogo, 'color': const Color(0xFF00A3D9)},
     {'name': 'Moov', 'logo': Images.moovlogo, 'color': const Color(0xFFF9A825)},
@@ -22,67 +24,13 @@ class _InterTransferScreenState extends State<InterTransferScreen> {
     {'name': 'MTN', 'logo': Images.mtnlogo, 'color': const Color(0xFFF9A825)},
   ];
 
-
-
-
-
-
-  // Ajoute ces constantes en haut du fichier
- Map<String, List<String>> prefixRules = {
-  'Wave': [], // aucun préfixe requis
-  'Moov': ['01', '02', '03'],
-  'Orange': ['07', '08', '09'],
-  'MTN': ['04', '05', '06'],
-};
-
-// Dans ta classe _InterTransferScreenState
-String? _validatePhone(String? phone, String? operator) {
-  if (phone == null || phone.length != 10 || operator == null) return null;
-
-  final prefix = phone.substring(0, 2);
-
-  final allowedPrefixes = prefixRules[operator] ?? [];
-
-  // Wave accepte tout
-  if (operator == 'Wave') return null;
-
-  if (!allowedPrefixes.contains(prefix)) {
-    return "Numéro invalide pour $operator\n . Doit commencer par ${allowedPrefixes.join(', ')}";
-  }
-
-  return null;
-}
-
-
-
-
-
-
-
-
-// Affiche l'alerte iOS si mauvais numéro
-void _showInvalidNumberAlert(String message) {
-  Get.dialog(
-    CupertinoAlertDialog(
-      title: Text("Numéro invalide"),
-      content: Padding(
-        padding: EdgeInsets.only(top: 10),
-        child: Text(
-          message,
-          style: TextStyle(fontSize: 16),
-          textAlign: TextAlign.center,
-        ),
-      ),
-      actions: [
-        CupertinoDialogAction(
-          child: Text("OK", style: TextStyle(color: CupertinoColors.activeBlue, fontWeight: FontWeight.w600)),
-          onPressed: () => Get.back(),
-        ),
-      ],
-    ),
-    barrierDismissible: false,
-  );
-}
+  // Règles de préfixe (inchangée)
+  Map<String, List<String>> prefixRules = {
+    'Wave': [],
+    'Moov': ['01', '02', '03'],
+    'Orange': ['07', '08', '09'],
+    'MTN': ['04', '05', '06'],
+  };
 
   // États locaux
   String? selectedSender;
@@ -91,36 +39,135 @@ void _showInvalidNumberAlert(String message) {
   final TextEditingController _receiverCtrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();
 
-  // Référence au controller GetX
+  // Controller GetX
   late final InterTransferController controller;
 
+  // Récupération du numéro Buudi du user connecté
+  final userProfile = Get.find<ProfileController>();
+
+  // Numéro Buudi nettoyé (sans +225, seulement 10 chiffres)
+  String get buudiPhoneClean {
+    String raw = userProfile.userInfo?.phone ?? "";
+    // On enlève +225 ou tout autre préfixe non numérique
+    String cleaned = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    // On garde seulement les 10 derniers chiffres si plus long
+    return cleaned.length >= 10 ? cleaned.substring(cleaned.length - 10) : cleaned;
+  }
+
   // Validation du bouton Suivant
- bool get canProceed {
-  // final senderError = _validatePhone(_senderCtrl.text, selectedSender);
-  // final receiverError = _validatePhone(_receiverCtrl.text, selectedReceiver);
+  bool get canProceed {
+    final senderError = _validatePhone(_senderCtrl.text, selectedSender);
+    final receiverError = _validatePhone(_receiverCtrl.text, selectedReceiver);
 
-  return selectedSender != null &&
-      selectedReceiver != null &&
-      _senderCtrl.text.length == 10 &&
-      _receiverCtrl.text.length == 10 ;
-      // senderError == null &&
-      // receiverError == null;
-}
-
+    return selectedSender != null &&
+        selectedReceiver != null &&
+        _senderCtrl.text.length == 10 &&
+        _receiverCtrl.text.length == 10 &&
+        senderError == null &&
+        receiverError == null;
+  }
 
   @override
   void initState() {
     super.initState();
 
-    // CRUCIAL : On injecte le controller UNE SEULE FOIS ici
     controller = Get.put(InterTransferController());
 
-    // Écoute des changements de texte
     _senderCtrl.addListener(_updateState);
     _receiverCtrl.addListener(_updateState);
   }
 
   void _updateState() => setState(() {});
+
+  // Détection automatique de l’opérateur depuis le numéro (10 chiffres)
+  String? _detectOperatorFromPhone(String phone) {
+    if (phone.length != 10) return null;
+    final prefix = phone.substring(0, 2);
+
+    if (prefixRules['Moov']!.contains(prefix)) return 'Moov';
+    if (prefixRules['Orange']!.contains(prefix)) return 'Orange';
+    if (prefixRules['MTN']!.contains(prefix)) return 'MTN';
+    return 'Wave'; // Par défaut
+  }
+
+  // Validation préfixe (inchangée)
+  String? _validatePhone(String? phone, String? operator) {
+    if (phone == null || phone.length != 10 || operator == null) return null;
+
+    final prefix = phone.substring(0, 2);
+    final allowedPrefixes = prefixRules[operator] ?? [];
+
+    if (operator == 'Wave') return null;
+
+    if (!allowedPrefixes.contains(prefix)) {
+      return "Numéro invalide pour $operator\nDoit commencer par ${allowedPrefixes.join(', ')}";
+    }
+    return null;
+  }
+
+  void _showInvalidNumberAlert(String message) {
+    Get.dialog(
+      CupertinoAlertDialog(
+        title: Text("Numéro invalide"),
+        content: Padding(
+          padding: EdgeInsets.only(top: 10),
+          child: Text(message, style: TextStyle(fontSize: 16), textAlign: TextAlign.center),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: Text("OK", style: TextStyle(color: CupertinoColors.activeBlue, fontWeight: FontWeight.w600)),
+            onPressed: () => Get.back(),
+          ),
+        ],
+      ),
+      barrierDismissible: false,
+    );
+  }
+
+  // Suggestion "Utiliser mon numéro Buudi" — avec numéro nettoyé
+  Widget _buildBuudiPhoneSuggestion() {
+    final cleanPhone = buudiPhoneClean;
+    if (cleanPhone.isEmpty || cleanPhone == _senderCtrl.text) return const SizedBox.shrink();
+
+    final detectedOp = _detectOperatorFromPhone(cleanPhone);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 16),
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _senderCtrl.text = cleanPhone; // On met les 10 chiffres sans +225
+            selectedSender = detectedOp ?? 'Wave';
+          });
+          controller.update();
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: CupertinoColors.systemGrey6,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: CupertinoColors.activeBlue.withOpacity(0.5)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(CupertinoIcons.person_crop_circle, size: 20, color: CupertinoColors.activeBlue),
+              SizedBox(width: 04),
+              Text(
+                "Utiliser ce numéro : $cleanPhone",
+                style: TextStyle(
+                  color: CupertinoColors.activeBlue,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.1
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -168,6 +215,10 @@ void _showInvalidNumberAlert(String message) {
                           enabled: selectedSender != null,
                           onTap: () => _scrollToField(100),
                         ),
+
+                        // Suggestion numéro Buudi (avec numéro nettoyé)
+                        _buildBuudiPhoneSuggestion(),
+
                         const SizedBox(height: 32),
 
                         // RÉCEPTEUR
@@ -194,15 +245,12 @@ void _showInvalidNumberAlert(String message) {
                           width: double.infinity,
                           child: CupertinoButton(
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            color: canProceed
-                                ? CupertinoColors.activeBlue
-                                : CupertinoColors.inactiveGray,
+                            color: canProceed ? CupertinoColors.activeBlue : CupertinoColors.inactiveGray,
                             borderRadius: BorderRadius.circular(12),
                             onPressed: canProceed
                                 ? () {
                                     HapticFeedback.mediumImpact();
 
-                                    // Double sécurité : on revérifie avant d’aller plus loin
                                     final senderError = _validatePhone(_senderCtrl.text, selectedSender);
                                     final receiverError = _validatePhone(_receiverCtrl.text, selectedReceiver);
 
@@ -215,7 +263,6 @@ void _showInvalidNumberAlert(String message) {
                                       return;
                                     }
 
-                                    // On sauvegarde les données dans le controller
                                     controller.setTransferDetails(
                                       senderOp: selectedSender!,
                                       senderNum: _senderCtrl.text,
@@ -223,17 +270,12 @@ void _showInvalidNumberAlert(String message) {
                                       receiverNum: _receiverCtrl.text,
                                     );
                                     controller.update();
-                                    // Navigation propre
                                     Get.toNamed(RouteHelper.interTransferAmount);
                                   }
-                                  
                                 : null,
                             child: const Text(
                               "Suivant",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                             ),
                           ),
                         ),
@@ -275,14 +317,9 @@ void _showInvalidNumberAlert(String message) {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isSelected
-                  ? op['color'].withOpacity(0.15)
-                  : CupertinoColors.systemGrey6,
+              color: isSelected ? op['color'].withOpacity(0.15) : CupertinoColors.systemGrey6,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isSelected ? op['color'] : Colors.transparent,
-                width: 2,
-              ),
+              border: Border.all(color: isSelected ? op['color'] : Colors.transparent, width: 2),
             ),
             child: Image.asset(
               op['logo'],
@@ -358,8 +395,6 @@ void _showInvalidNumberAlert(String message) {
     _senderCtrl.dispose();
     _receiverCtrl.dispose();
     _scrollCtrl.dispose();
-    // Optionnel : détruire le controller quand on quitte complètement le flow
-    // Get.delete<InterTransferController>();
     super.dispose();
   }
 }

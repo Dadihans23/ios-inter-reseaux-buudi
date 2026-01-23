@@ -21,7 +21,7 @@ class Images {
     static const String wavelogo = 'assets/image/wavelogo2.png';
     static const String moovlogo = 'assets/image/moovlogo.png';
     
-    static const String emoney = 'assets/image/e_money_senegal.png';
+    static const String emoney = 'assets/image/expresso_senegal.png';
     static const String freemoney = 'assets/image/free_money_senegal.png';
     static const String wizall = 'assets/image/wizall.png';
     static const String tmoney = 'assets/image/t_money.png';

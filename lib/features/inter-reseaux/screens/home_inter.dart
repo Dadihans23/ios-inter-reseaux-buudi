@@ -9,7 +9,7 @@ import '../services/transaction_service.dart';
 import 'package:six_cash/features/inter-reseaux/screens/all_history.dart';
 import '../services/constant.dart';
 
-
+import 'dart:ui';
 
 class HomeInterScreen extends StatefulWidget {
   @override
@@ -61,21 +61,81 @@ class _HomeScreenState extends State<HomeInterScreen> {
     });
   }
 
+  // String _getLogo(String wallet) {
+  //   final op = wallet.replaceAll('-ci', '').toLowerCase();
+  //   switch (op) {
+  //     case 'wave':
+  //       return Images.wavelogo;
+  //     case 'moov':
+  //       return Images.moovlogo;
+  //     case 'orange-money':
+  //       return Images.orangelogo;
+  //     case 'mtn':
+  //       return Images.mtnlogo;
+  //     default:
+  //       return Images.wavelogo;
+  //   }
+  // }
+
   String _getLogo(String wallet) {
-    final op = wallet.replaceAll('-ci', '').toLowerCase();
-    switch (op) {
-      case 'wave':
-        return Images.wavelogo;
-      case 'moov':
-        return Images.moovlogo;
-      case 'orange-money':
-        return Images.orangelogo;
-      case 'mtn':
-        return Images.mtnlogo;
-      default:
-        return Images.wavelogo;
-    }
+  // 1. Nettoyage : enlève tout suffixe pays et tirets
+  String cleaned = wallet
+      .replaceAll('-ci', '')
+      .replaceAll('-sn', '')
+      .replaceAll('-bj', '')
+      .replaceAll('-tg', '')
+      .replaceAll('-bf', '')
+      .replaceAll('-ml', '')
+      .replaceAll('-momo', '')     // pour mtn-momo-bj
+      .replaceAll('money-', '')    // pour orange-money-*
+      .toLowerCase()
+      .trim();
+
+  // 2. Mapping clair et exhaustif
+  switch (cleaned) {
+    // Côte d'Ivoire
+    case 'wave':
+    case 'wavesn':
+      return Images.wavelogo;
+
+    case 'moov':
+    case 'moovbj':
+    case 'moovtg':
+    case 'moovbf':
+      return Images.moovlogo;
+
+    case 'orange':
+    case 'orangemoney':
+    case 'orangesn':
+    case 'orangebf':
+    case 'orangeml':
+      return Images.orangelogo;
+
+    case 'mtn':
+    case 'mtn-benin':
+    case 'mtnmomobj':
+      return Images.mtnlogo;
+
+    // Sénégal spécifiques
+    case 'freemoney':
+    case 'free-money':
+      return Images.freemoney;
+
+    case 'emoney':
+    case 'e-money':
+      return Images.emoney;
+
+    // Togo spécifique
+    case 'tmoney':
+    case 't-money':
+      return Images.tmoney;
+
+    // Fallback si inconnu
+    default:
+      print("Logo inconnu pour wallet: $wallet (cleaned: $cleaned)");
+      return Images.wavelogo; // ou une icône "inconnu" si tu veux
   }
+}
 
   String formatDate(DateTime date) {
     const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jui', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
@@ -95,7 +155,7 @@ class _HomeScreenState extends State<HomeInterScreen> {
       case 'disbursing': return 'Crédit en cours';
       case 'success': return 'Réussi';
       case 'failed': return 'Échoué';
-      default: return 'échec';
+      default: return 'Inconnu';
     }
   }
 
@@ -132,33 +192,46 @@ class _HomeScreenState extends State<HomeInterScreen> {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(backgroundColor: CupertinoColors.systemBackground),
       child: SafeArea(
         child: Column(
           children: [
-            SizedBox(height: 30),
-
-            // BOUTON NOUVEAU TRANSFERT
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: GestureDetector(
-                onTap: () => Get.toNamed('/inter_transfer'),
-                child: Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.activeBlue,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Center(
-                    child: Text(
-                      "Nouveau transfert",
-                      style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ),
+            // CONTAINER BLEU AVEC BUBBLES COLLÉES À 1 PX DU BAS
+            Container(
+  height: 200,
+  decoration: BoxDecoration(
+    color: CupertinoColors.activeBlue,
+    borderRadius: const BorderRadius.only(
+      bottomLeft: Radius.circular(30),
+      bottomRight: Radius.circular(30),
+    ),
+  ),
+  child: Stack(
+    children: [
+      Positioned(
+        bottom: 5, // exactement 1 px du bas
+        left: 0,
+        right: 0,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _BubbleAction(
+              icon: Icons.north_east,
+              label: "Transfert",
+              onTap: () => Get.toNamed('/inter_transfer'),
             ),
+            _BubbleAction(
+              icon: Icons.public,
+              label: "International",
+              onTap: () => Get.toNamed('/international_transfer'),
+            ),
+          ],
+        ),
+      ),
+    ],
+  ),
+),
+           
 
             SizedBox(height: 40),
 
@@ -203,7 +276,7 @@ class _HomeScreenState extends State<HomeInterScreen> {
                           ),
                         )
                       : ListView.builder(
-                          physics: const BouncingScrollPhysics(), // ← CETTE LIGNE AJOUTÉE
+                          physics: const BouncingScrollPhysics(),
                           padding: EdgeInsets.symmetric(horizontal: 20),
                           itemCount: filteredTransactions.length,
                           itemBuilder: (context, index) {
@@ -211,8 +284,8 @@ class _HomeScreenState extends State<HomeInterScreen> {
 
                             return GestureDetector(
                               onTap: () {
-                              Get.toNamed('/transaction_detail', arguments: tx);
-                              }, 
+                                Get.toNamed('/transaction_detail', arguments: tx);
+                              },
                               child: Container(
                                 margin: EdgeInsets.only(bottom: 16),
                                 padding: EdgeInsets.all(10),
@@ -276,6 +349,60 @@ class _HomeScreenState extends State<HomeInterScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _BubbleAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _BubbleAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.4),
+                  ),
+                ),
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

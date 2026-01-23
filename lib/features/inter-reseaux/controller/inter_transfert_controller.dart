@@ -23,6 +23,7 @@ class InterTransferController extends GetxController {
   final RxDouble totalToPay = 0.0.obs;
   final RxDouble networkFees = 0.0.obs;
   final RxDouble buudiCommission = 0.0.obs;
+  
 
   Map<String, dynamic> feesConfig = {};
 
@@ -45,18 +46,38 @@ class InterTransferController extends GetxController {
     update();
   }
 
+  // void setTransferDetails({
+  //   required String senderOp,
+  //   required String senderNum,
+  //   required String receiverOp,
+  //   required String receiverNum,
+  //   String? country,  // ← Optionnel
+  // }) {
+  //   senderOperator = senderOp.toLowerCase();
+  //   senderNumber = senderNum;
+  //   receiverOperator = receiverOp.toLowerCase();
+  //   receiverNumber = receiverNum;
+  //   country = country;  // ← On le stocke si fourni
+  //   update();
+  // }
+
   void setTransferDetails({
-    required String senderOp,
-    required String senderNum,
-    required String receiverOp,
-    required String receiverNum,
-  }) {
-    senderOperator = senderOp.toLowerCase();
-    senderNumber = senderNum;
-    receiverOperator = receiverOp.toLowerCase();
-    receiverNumber = receiverNum;
-    update();
-  }
+  required String senderOp,
+  required String senderNum,
+  required String receiverOp,
+  required String receiverNum,
+  String? country,
+  String? receiverMode,  // ← AJOUT : le 'mode' backend
+}) {
+  senderOperator = senderOp.toLowerCase();
+  senderNumber = senderNum;
+  receiverOperator = receiverOp.toLowerCase();
+  receiverNumber = receiverNum;
+  country = country;
+  receiverMode = receiverMode;  // ← On stocke le vrai mode backend
+  update();
+}
+  
 
   // CORRIGÉ : on accepte String (ce que donne le TextField)
   void updateFromReceived(String rawValue) {

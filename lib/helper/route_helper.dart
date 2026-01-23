@@ -43,6 +43,8 @@ import 'package:six_cash/features/inter-reseaux/controller/inter_transfert_contr
 import 'package:six_cash/features/inter-reseaux/screens/home_inter.dart';
 import 'package:six_cash/features/inter-reseaux/screens/all_history.dart';
 import 'package:six_cash/features/inter-reseaux/screens/detail_transaction.dart';
+import 'package:six_cash/features/inter-reseaux/screens/inter_transfert_inter.dart';
+
 
 
 
@@ -113,6 +115,8 @@ class RouteHelper {
 ///////////////////////// inter reseaux features //////////////////////////////////////
 
 static const String interTransfer = '/inter_transfer';
+static const String internationalTransfer = '/international_transfer';
+
 static const String interTransferAmount = '/inter_transfer_amount';
 static const String initiateInterTransfert = '/inter_transfer_instruction';
 static const String transferStatus = '/transfer_status';
@@ -207,8 +211,10 @@ static String getdetailTransactionsScreenRoute() => detailTransactions;
 ///////////////////////// inter reseaux features //////////////////////////////////////
 //////////////////////////// inter reseaux features //////////////////////////////////////
 ///////////////////////// inter reseaux features //////////////////////////////////////
+///InternationalTransferScreen
     GetPage(name: interTransfer, page: () =>  InterTransferScreen()),
-    GetPage(name: interTransferAmount, page: () => const InterTransferAmountScreen()),
+    GetPage(name: internationalTransfer, page: () =>  InternationalTransferScreen()),
+    GetPage(name: interTransferAmount, page: () =>  InterTransferAmountScreen()),
     GetPage(name: initiateInterTransfert, page: () =>  ConfirmTransferScreen()),
     GetPage(name: transferStatus , page: () =>  TransferStatusScreen()),
     GetPage(name: otpScreen , page: () =>  OtpOrUssdScreen()),
@@ -231,6 +237,8 @@ static String getdetailTransactionsScreenRoute() => detailTransactions;
       name: detailTransactions,
       page: () => TransactionDetailScreen(transaction: Get.arguments),
     ),
+   
+
 
 
 

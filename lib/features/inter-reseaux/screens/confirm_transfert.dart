@@ -24,6 +24,8 @@ class _ConfirmTransferScreenState extends State<ConfirmTransferScreen> {
   String? errorMessage;
 
   Future<void> initiateTransfer() async {
+    print(controller.receiverOperator);
+
     if (isLoading) return;
 
     setState(() {
@@ -44,6 +46,7 @@ class _ConfirmTransferScreenState extends State<ConfirmTransferScreen> {
 
         },
         
+        
         body: json.encode({
           "amount": controller.amountToReceive.value,
           "from_wallet": controller.senderOperator,
@@ -51,6 +54,7 @@ class _ConfirmTransferScreenState extends State<ConfirmTransferScreen> {
           "from_phone": controller.senderNumber,
           "to_phone": controller.receiverNumber,
         }),
+
       );
 
       if (initRes.statusCode != 200) {
@@ -159,7 +163,7 @@ class _ConfirmTransferScreenState extends State<ConfirmTransferScreen> {
       decoration: BoxDecoration(color: CupertinoColors.secondarySystemBackground, borderRadius: BorderRadius.circular(16)),
       child: Column(
         children: [
-          Text("+225 ${controller.senderNumber} → +225 ${controller.receiverNumber}", style: TextStyle(fontSize: 16)),
+          Text(" ${controller.senderNumber} →  ${controller.receiverNumber}", style: TextStyle(fontSize: 16)),
           SizedBox(height: 8),
           Text(
             "${controller.senderOperator?.toUpperCase()} → ${controller.receiverOperator?.toUpperCase()}",

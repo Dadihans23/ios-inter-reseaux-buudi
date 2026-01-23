@@ -18,16 +18,34 @@ import '../../inter-reseaux/controller/inter_transfert_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/constant.dart';
 
-
 class InterTransferAmountScreen extends StatelessWidget {
   const InterTransferAmountScreen({Key? key}) : super(key: key);
 
-  static final Map<String, OperatorInfo> operatorMap = {
-    'Wave': OperatorInfo(logo: Images.wavelogo, color: const Color(0xFF00A3D9)),
-    'Moov': OperatorInfo(logo: Images.moovlogo, color: const Color(0xFFF9A825)),
-    'Orange': OperatorInfo(logo: Images.orangelogo, color: const Color(0xFFFF6200)),
-    'MTN': OperatorInfo(logo: Images.mtnlogo, color: const Color(0xFFF9A825)),
-  };
+  // ── OPÉRATEURS ÉTENDUS (local + international) ──
+static final Map<String, OperatorInfo> operatorMap = {
+  // Local CI (minuscules sans espaces)
+  'wave': OperatorInfo(logo: Images.wavelogo, color: const Color(0xFF00A3D9)),
+  'moov': OperatorInfo(logo: Images.moovlogo, color: const Color(0xFFF9A825)),
+  'orange': OperatorInfo(logo: Images.orangelogo, color: const Color(0xFFFF6200)),
+  'mtn': OperatorInfo(logo: Images.mtnlogo, color: const Color(0xFFF9A825)),
+
+  // International (minuscules sans espaces, comme dans selectedReceiver)
+  'orangesn': OperatorInfo(logo: Images.orangelogo, color: const Color(0xFFFF6200)),
+  'wavesn': OperatorInfo(logo: Images.wavelogo, color: const Color(0xFF00A3D9)),
+  'freemoney': OperatorInfo(logo: Images.freemoney, color: Colors.blue),
+  'emoney': OperatorInfo(logo: Images.emoney, color: Colors.purple),
+
+  'mtnbj': OperatorInfo(logo: Images.mtnlogo, color: const Color(0xFFF9A825)),
+  'moovbj': OperatorInfo(logo: Images.moovlogo, color: const Color(0xFFF9A825)),
+
+  'tmoneytg': OperatorInfo(logo: Images.tmoney, color: Colors.orange),
+  'moovtg': OperatorInfo(logo: Images.moovlogo, color: const Color(0xFFF9A825)),
+
+  'orangebf': OperatorInfo(logo: Images.orangelogo, color: const Color(0xFFFF6200)),
+  'moovbf': OperatorInfo(logo: Images.moovlogo, color: const Color(0xFFF9A825)),
+
+  'orangeml': OperatorInfo(logo: Images.orangelogo, color: const Color(0xFFFF6200)),
+};
 
   @override
   Widget build(BuildContext context) {
@@ -50,23 +68,23 @@ class InterTransferAmountScreen extends StatelessWidget {
             children: [
               SizedBox(height: Get.height * 0.02),
 
-              // RÉCAP EXPÉDITEUR / DESTINATAIRE
+              // RÉCAP EXPÉDITEUR / DESTINATAIRE — PROTÉGÉ
               _buildRecapCard(controller),
 
               SizedBox(height: Get.height * 0.04),
 
-              // VOUS PAYEZ (ce que l'utilisateur débite)
+              // VOUS PAYEZ
               _buildCompactAmountField(
                 label: "Vous payez",
                 valueObs: controller.totalToPay,
-                onChanged: (_) {}, // désactivé : calculé automatiquement
+                onChanged: (_) {},
                 suffixColor: CupertinoColors.systemGrey,
                 enabled: false,
               ),
 
               SizedBox(height: Get.height * 0.025),
 
-              // LE DESTINATAIRE REÇOIT (champ éditable)
+              // LE DESTINATAIRE REÇOIT
               _buildCompactAmountField(
                 label: "Le destinataire reçoit",
                 valueObs: controller.amountToReceive,
@@ -77,7 +95,7 @@ class InterTransferAmountScreen extends StatelessWidget {
 
               SizedBox(height: Get.height * 0.04),
 
-              // RÉSUMÉ DES FRAIS (réactivé et propre)
+              // RÉSUMÉ DES FRAIS
               Obx(() => _buildFeesSummary(controller)),
 
               SizedBox(height: Get.height * 0.06),
@@ -91,38 +109,33 @@ class InterTransferAmountScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                     onPressed: controller.canProceed
                         ? () async {
-            // VÉRIFICATION MONTANT MINIMUM 200 FCFA
-                          if (controller.amountToReceive.value < 200) {
-                            Get.dialog(
-                              CupertinoAlertDialog(
-                                title: Text("Montant minimum requis"),
-                                content: Padding(
-                                  padding: EdgeInsets.only(top: 10),
-                                  child: Text(
-                                    "Le montant minimum pour un transfert est de 200 FCFA.",
-                                    style: TextStyle(fontSize: 15),
+                            // VÉRIFICATION MONTANT MINIMUM 200 FCFA
+                            if (controller.amountToReceive.value < 200) {
+                              Get.dialog(
+                                CupertinoAlertDialog(
+                                  title: Text("Montant minimum requis"),
+                                  content: Padding(
+                                    padding: EdgeInsets.only(top: 10),
+                                    child: Text(
+                                      "Le montant minimum pour un transfert est de 200 FCFA.",
+                                      style: TextStyle(fontSize: 15),
+                                    ),
                                   ),
+                                  actions: [
+                                    CupertinoDialogAction(
+                                      child: Text("OK", style: TextStyle(color: CupertinoColors.activeBlue, fontWeight: FontWeight.w600)),
+                                      onPressed: () => Get.back(),
+                                    ),
+                                  ],
                                 ),
-                                actions: [
-                                  CupertinoDialogAction(
-                                    child: Text("OK", style: TextStyle(color: CupertinoColors.activeBlue, fontWeight: FontWeight.w600)),
-                                    onPressed: () => Get.back(),
-                                  ),
-                                ],
-                              ),
-                              barrierDismissible: false,
-                            );
-                            return;
-                          }
+                                barrierDismissible: false,
+                              );
+                              return;
+                            }
 
-                          // Si tout est bon → on continue
                             HapticFeedback.mediumImpact();
                             Get.toNamed(RouteHelper.initiateInterTransfert);
-                         
-                        }
-                        
-                        
-                        
+                          }
                         : null,
                     child: Text(
                       "Continuer",
@@ -144,7 +157,7 @@ class InterTransferAmountScreen extends StatelessWidget {
     );
   }
 
-  // Champ montant (avec option désactivé)
+  // Champ montant (inchangé)
   Widget _buildCompactAmountField({
     required String label,
     required RxDouble valueObs,
@@ -226,7 +239,7 @@ class InterTransferAmountScreen extends StatelessWidget {
     );
   }
 
-  // RÉSUMÉ DES FRAIS (réactivé et magnifique)
+  // RÉSUMÉ DES FRAIS (inchangé)
   Widget _buildFeesSummary(InterTransferController c) {
     if (c.amountToReceive.value < 100) {
       return const SizedBox();
@@ -274,22 +287,55 @@ class InterTransferAmountScreen extends StatelessWidget {
     );
   }
 
+  // RÉCAP EXPÉDITEUR / DESTINATAIRE — VERSION SÉCURISÉE + LOGO CORRECT
   Widget _buildRecapCard(InterTransferController c) {
-
+    // Si les opérateurs ne sont pas encore définis → placeholder
     if (c.senderOperator == null || c.receiverOperator == null) {
-    return const SizedBox(); // ou un loader, ou un placeholder
-  }
+      return Container(
+        padding: EdgeInsets.all(Get.width * 0.05),
+        decoration: BoxDecoration(
+          color: CupertinoColors.systemGrey6,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Center(
+          child: Text(
+            "Informations en cours de chargement...",
+            style: TextStyle(fontSize: 16, color: CupertinoColors.secondaryLabel),
+          ),
+        ),
+      );
+    }
 
- final senderInfo = operatorMap.entries
-    .firstWhere((e) => e.key.toLowerCase() == (c.senderOperator ?? '').toLowerCase())
-    .value;
+String normalizeKey(String key) {
+  if (key == null) return 'unknown';
+  return key
+      .toLowerCase()
+      .replaceAll(' ', '')
+      .replaceAll('momo', '')
+      .replaceAll('money', '')
+      .replaceAll('-', '');
+}
 
-final receiverInfo = operatorMap.entries
-    .firstWhere((e) => e.key.toLowerCase() == (c.receiverOperator ?? '').toLowerCase())
-    .value;
-   
+// Recherche sender (CI) - toujours simple
+final senderEntry = operatorMap.entries.firstWhere(
+  (e) => normalizeKey(e.key) == normalizeKey(c.senderOperator ?? 'unknown'),
+  orElse: () => MapEntry('Unknown', OperatorInfo(logo: Images.wavelogo, color: Colors.grey)),
+);
 
-   
+// Recherche receiver - plus tolérante pour les noms internationaux
+final receiverEntry = operatorMap.entries.firstWhere(
+  (e) {
+    final normKey = normalizeKey(e.key);
+    final normReceiver = normalizeKey(c.receiverOperator ?? 'unknown');
+    // Match exact ou partiel (ex: 'mtnbj' matche 'mtnmomobj')
+    return normKey == normReceiver || normReceiver.contains(normKey);
+  },
+  orElse: () => MapEntry('Unknown', OperatorInfo(logo: Images.wavelogo, color: Colors.grey)),
+);
+
+final senderInfo = senderEntry.value;
+final receiverInfo = receiverEntry.value;
+
 
     return Container(
       padding: EdgeInsets.all(Get.width * 0.05),
@@ -300,12 +346,12 @@ final receiverInfo = operatorMap.entries
       ),
       child: Column(
         children: [
-          _recapRow("Expéditeur", senderInfo, c.senderNumber!, c.senderOperator!),
+          _recapRow("Expéditeur", senderInfo, c.senderNumber ?? '', c.senderOperator ?? 'Inconnu'),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Icon(CupertinoIcons.arrow_down, size: 28, color: CupertinoColors.systemGrey3),
           ),
-          _recapRow("Destinataire", receiverInfo, c.receiverNumber!, c.receiverOperator!),
+          _recapRow("Destinataire", receiverInfo, c.receiverNumber ?? '', c.receiverOperator ?? 'Inconnu'),
         ],
       ),
     );
@@ -326,7 +372,7 @@ final receiverInfo = operatorMap.entries
               Text(label,
                   style: TextStyle(fontSize: 13, color: CupertinoColors.secondaryLabel)),
               const SizedBox(height: 2),
-              Text("+225 $number",
+              Text(number.isNotEmpty ? "+XXX $number" : "Non défini",
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               Text(operatorName,
                   style: TextStyle(fontSize: 13, color: info.color, fontWeight: FontWeight.w500)),

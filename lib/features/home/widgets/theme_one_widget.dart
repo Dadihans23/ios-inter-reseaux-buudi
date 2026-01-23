@@ -122,25 +122,42 @@ class ThemeOneWidget extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical:05 , horizontal: 05),
+                padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 5),
                 child: GestureDetector(
                   onTap: () {
                     Get.toNamed(RouteHelper.homeInter);
-                  }, 
-                      child: Container(
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.blue,
-                          borderRadius: BorderRadius.circular(10),
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.swap_horiz, // icône transfert / échange
+                          color: Colors.white,
+                          size: 28,
                         ),
-                        child: const Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Text("Transfert inter réseaux" ,
-                          style: TextStyle( color: Colors.white , fontSize: 22 ,  )),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            "Transfert inter réseaux",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                            ),
+                            softWrap: true,
+                            overflow: TextOverflow.visible,
                           ),
                         ),
-                      ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
+
                   
               /// Cards...
               SizedBox(
