@@ -31,41 +31,10 @@ class _OtpOrUssdScreenState extends State<OtpOrUssdScreen> {
   void initState() {
     super.initState();
     transferId = args['transfer_id'].toString();
-
-    // MOOV → popup automatique + polling
-    if (controller.senderOperator?.toLowerCase() == 'moov') {
-      _confirmMoov();
-    }
+    
   }
 
-  Future<void> _confirmMoov() async {
-    setState(() => isLoading = true);
-    try {
-      final res = await http.post(
-        Uri.parse("http://${AppConstants.baseUrl}/api/transfer/confirm/"),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode({"transfer_id": int.parse(transferId)}),
-      );
-
-      if (res.statusCode == 200) {
-        Get.snackbar(
-          "Moov",
-          "Valide le paiement dans le popup",
-          backgroundColor: Color(0xFFF9A825),
-          colorText: Colors.white,
-          duration: Duration(seconds: 5),
-        );
-        // ON AFFICHE L'ÉCRAN AVEC POLLING
-        Get.off(() => MoovWaitingScreen(transferId: transferId));
-      } else {
-        setState(() => errorMessage = "Impossible de lancer Moov");
-      }
-    } catch (e) {
-      setState(() => errorMessage = "Pas de connexion");
-    } finally {
-      setState(() => isLoading = false);
-    }
-  }
+ 
 
   Future<void> _submitOtp() async {
     if (otpController.text.trim().length < 4) return;
@@ -178,50 +147,5 @@ class _OtpOrUssdScreenState extends State<OtpOrUssdScreen> {
         ),
       ),
     );
-  }
-
-  // MTN — Style iOS propre
-  Widget _buildMtnScreen() {
-    final width = MediaQuery.of(context).size.width;
-
-    return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(middle: Text("MTN MoMo")),
-      child: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: width * 0.08),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(CupertinoIcons.phone_fill, size: width * 0.22, color: Color(0xFFF9A825)),
-              SizedBox(height: width * 0.1),
-              Text("Entre le code OTP reçu par SMS", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
-              SizedBox(height: width * 0.1),
-              CupertinoTextField(
-                controller: otpController,
-                keyboardType: TextInputType.number,
-                placeholder: "123456",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: width * 0.09, letterSpacing: 10),
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(6)],
-                decoration: BoxDecoration(color: CupertinoColors.secondarySystemBackground, borderRadius: BorderRadius.circular(16)),
-                padding: EdgeInsets.symmetric(vertical: 18),
-              ),
-              if (errorMessage != null) ...[
-                SizedBox(height: 16),
-                Text(errorMessage!, style: TextStyle(color: CupertinoColors.systemRed)),
-              ],
-              SizedBox(height: width * 0.1),
-              SizedBox(
-                width: double.infinity,
-                child: CupertinoButton.filled(
-                  child: isLoading ? CupertinoActivityIndicator() : Text("Confirmer"),
-                  onPressed: isLoading ? null : _submitOtp,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  }  
 }

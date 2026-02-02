@@ -7,7 +7,6 @@ import 'dart:convert';
 import 'dart:async';
 import '../services/constant.dart';
 
-
 class MoovWaitingScreen extends StatefulWidget {
   final String transferId;
 
@@ -25,12 +24,39 @@ class _MoovWaitingScreenState extends State<MoovWaitingScreen> {
   @override
   void initState() {
     super.initState();
-    _startPolling();
+    _confirmAndStart();
+  }
+
+  Future<void> _confirmAndStart() async {
+    try {
+      final confirmRes = await http.post(
+        Uri.parse("http://${AppConstants.baseUrl}/api/transfer/confirm/"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"transfer_id": int.parse(widget.transferId)}),
+      );
+
+      if (confirmRes.statusCode != 200) {
+        setState(() {
+          status = "failed";
+          isFinal = true;
+        });
+        return;
+      }
+
+      // Confirmation OK → polling
+      _startPolling();
+
+    } catch (e) {
+      setState(() {
+        status = "failed";
+        isFinal = true;
+      });
+    }
   }
 
   void _startPolling() {
-    _fetchStatus(); // Vérif immédiate
-    _timer = Timer.periodic(const Duration(seconds: 20), (_) {
+    _fetchStatus(); // Première vérif immédiate
+    _timer = Timer.periodic(const Duration(seconds: 10), (_) {
       if (!mounted || isFinal) return;
       _fetchStatus();
     });
@@ -50,18 +76,16 @@ class _MoovWaitingScreenState extends State<MoovWaitingScreen> {
         final newStatus = data["status"] ?? "pending";
         final isDone = data["final"] == true;
 
-        if (isDone && (newStatus == "success" || newStatus == "failed")) {
+        if (isDone) {
           _timer?.cancel();
-          if (mounted) {
-            setState(() {
-              status = newStatus;
-              isFinal = true;
-            });
-          }
+          setState(() {
+            status = newStatus;
+            isFinal = true;
+          });
         }
       }
     } catch (e) {
-      print("Polling Moov error: $e");
+      print("Polling error: $e");
     }
   }
 
@@ -76,61 +100,72 @@ class _MoovWaitingScreenState extends State<MoovWaitingScreen> {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: () async => false, // Bloque le retour physique
+      onWillPop: () async => false,
       child: CupertinoPageScaffold(
-        navigationBar: CupertinoNavigationBar(
-          middle: Text("Statut du transfert"),
+        navigationBar: const CupertinoNavigationBar(
+          middle: Text("Paiement Moov"),
           border: null,
-          automaticallyImplyLeading: false,  // 🔥 ENLÈVE LE BOUTON DE RETOUR
-
+          automaticallyImplyLeading: false,
         ),
         child: SafeArea(
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // Icône + loader
                 AnimatedSwitcher(
-                  duration: Duration(milliseconds: 500),
-                  child: _buildIcon(),
+                  duration: const Duration(milliseconds: 400),
+                  child: _buildMainContent(),
                   key: ValueKey(status),
                 ),
-                SizedBox(height: 50),
+
+                const SizedBox(height: 40),
+
+                // Message principal
                 Text(
                   _getMessage(),
-                  style: TextStyle(fontSize: 23, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: status == "failed" ? CupertinoColors.systemRed : null,
+                  ),
                   textAlign: TextAlign.center,
                 ),
 
-                SizedBox(height: 20),
+                const SizedBox(height: 40),
 
-                if (!isFinal)
-                  Text(
-                    "Vérification en cours...",
-                    style: TextStyle(color: CupertinoColors.secondaryLabel, fontSize: 16),
-                  ),
-
-                // BOUTON FULL MOOV EN BAS
+                // Bouton retour seulement quand terminé
                 if (isFinal)
-                  Padding(
-                    padding: EdgeInsets.only(top: 60),
-                    child: SizedBox(
-                      width: 280,
-                      child: CupertinoButton(
-                        padding: EdgeInsets.symmetric(vertical: 18),
-                        color: Color(0xFF00A3D9), // COULEUR MOOV OFFICIELLE
-                        borderRadius: BorderRadius.circular(16),
-                        onPressed: _goHome,
-                        child: Text(
-                          "Retour à l'accueil",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 19,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+  SizedBox(
+    width: 240,
+    child: Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF00A3D9), // Bleu Moov officiel
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF00A3D9).withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: CupertinoButton(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        borderRadius: BorderRadius.circular(12),
+        child: const Text(
+          "Retour à l'accueil",
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        onPressed: _goHome,
+      ),
+    ),
+  ),
+                
               ],
             ),
           ),
@@ -139,32 +174,25 @@ class _MoovWaitingScreenState extends State<MoovWaitingScreen> {
     );
   }
 
-  Widget _buildIcon() {
-    switch (status) {
-      case "success":
-        return Icon(CupertinoIcons.checkmark_circle_fill, size: 140, color: Colors.green);
-      case "failed":
-        return Icon(CupertinoIcons.xmark_circle_fill, size: 140, color: Colors.red);
-      default:
-        return Column(
-          key: ValueKey("loader"),
-          children: [
-            Icon(CupertinoIcons.checkmark_seal_fill, size: 120, color: Color(0xFF00A3D9)),
-            SizedBox(height: 25),
-            CupertinoActivityIndicator(radius: 40),
-          ],
-        );
+  Widget _buildMainContent() {
+    if (status == "pending") {
+      return Column(
+        children: [
+          const Icon(CupertinoIcons.checkmark_seal_fill, size: 100, color: Color(0xFF00A3D9)),
+          const SizedBox(height: 20),
+          const CupertinoActivityIndicator(radius: 30),
+        ],
+      );
+    } else if (status == "success") {
+      return const Icon(CupertinoIcons.checkmark_circle_fill, size: 140, color: Colors.green);
+    } else {
+      return const Icon(CupertinoIcons.xmark_circle_fill, size: 140, color: Colors.red);
     }
   }
 
   String _getMessage() {
-    switch (status) {
-      case "success":
-        return "Paiement Moov confirmé !";
-      case "failed":
-        return "Paiement refusé par Moov";
-      default:
-        return "Validation en cours...\nConfirme dans le popup Moov";
-    }
+    if (status == "pending") return "En attente de confirmation Moov...";
+    if (status == "success") return "Paiement confirmé !";
+    return "Échec du paiement";
   }
 }

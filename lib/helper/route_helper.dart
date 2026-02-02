@@ -224,6 +224,12 @@ static String getdetailTransactionsScreenRoute() => detailTransactions;
         transferId: Get.find<InterTransferController>().currentTransferId!,
       ),
     ),
+    GetPage(
+      name: mtnScreen,
+      page: () => MtnWaitingScreen(
+        transferId: Get.find<InterTransferController>().currentTransferId!,
+      ),
+    ),
      GetPage(name: homeInter , page: () =>  HomeInterScreen()),
      GetPage(
       name: allHystory ,

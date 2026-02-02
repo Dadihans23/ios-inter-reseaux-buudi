@@ -2,6 +2,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:six_cash/helper/route_helper.dart';
 import 'package:six_cash/util/images.dart';
 import '../../inter-reseaux/controller/inter_transfert_controller.dart';
@@ -124,6 +126,77 @@ class _InterTransferScreenState extends State<InterTransferScreen> {
     );
   }
 
+  // Nettoyage du numéro de téléphone (retirer espaces, tirets, préfixe +225)
+  String _cleanPhone(String raw) {
+    String digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.startsWith('225') && digits.length > 10) {
+      digits = digits.substring(3);
+    }
+    if (digits.length > 10) {
+      digits = digits.substring(digits.length - 10);
+    }
+    return digits;
+  }
+
+  // Ouvrir le sélecteur de contacts
+  Future<void> _pickContact() async {
+    final status = await Permission.contacts.request();
+    if (status != PermissionStatus.granted) {
+      Get.dialog(
+        CupertinoAlertDialog(
+          title: const Text("Permission requise"),
+          content: const Padding(
+            padding: EdgeInsets.only(top: 10),
+            child: Text(
+              "L'accès aux contacts est nécessaire pour sélectionner un destinataire.",
+              textAlign: TextAlign.center,
+            ),
+          ),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text("Annuler"),
+              onPressed: () => Get.back(),
+            ),
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              child: const Text("Ouvrir les réglages"),
+              onPressed: () {
+                Get.back();
+                openAppSettings();
+              },
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final contacts = await FlutterContacts.getContacts(withProperties: true, withPhoto: false);
+    if (contacts.isEmpty) return;
+
+    // Filtrer les contacts qui ont au moins un numéro
+    final contactsWithPhone = contacts.where((c) => c.phones.isNotEmpty).toList();
+
+    if (!mounted) return;
+
+    showCupertinoModalPopup(
+      context: context,
+      builder: (ctx) => _ContactPickerSheet(
+        contacts: contactsWithPhone,
+        onSelected: (phone) {
+          final cleaned = _cleanPhone(phone);
+          setState(() {
+            _receiverCtrl.text = cleaned;
+            final detected = _detectOperatorFromPhone(cleaned);
+            if (detected != null) {
+              selectedReceiver = detected;
+            }
+          });
+        },
+      ),
+    );
+  }
+
   // Suggestion "Utiliser mon numéro Buudi" — avec numéro nettoyé
   Widget _buildBuudiPhoneSuggestion() {
     final cleanPhone = buudiPhoneClean;
@@ -236,6 +309,7 @@ class _InterTransferScreenState extends State<InterTransferScreen> {
                           controller: _receiverCtrl,
                           enabled: selectedReceiver != null,
                           onTap: () => _scrollToField(200),
+                          showContactPicker: true,
                         ),
 
                         const SizedBox(height: 32),
@@ -343,6 +417,7 @@ class _InterTransferScreenState extends State<InterTransferScreen> {
     required TextEditingController controller,
     required bool enabled,
     required VoidCallback onTap,
+    bool showContactPicker = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,6 +435,19 @@ class _InterTransferScreenState extends State<InterTransferScreen> {
             padding: EdgeInsets.only(left: 12),
             child: Text("+225", style: TextStyle(fontWeight: FontWeight.w600)),
           ),
+          suffix: showContactPicker
+              ? GestureDetector(
+                  onTap: enabled ? _pickContact : null,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: Icon(
+                      CupertinoIcons.person_crop_circle,
+                      size: 28,
+                      color: enabled ? CupertinoColors.activeBlue : CupertinoColors.inactiveGray,
+                    ),
+                  ),
+                )
+              : null,
           placeholder: "0123456789",
           keyboardType: TextInputType.phone,
           inputFormatters: [
@@ -396,5 +484,105 @@ class _InterTransferScreenState extends State<InterTransferScreen> {
     _receiverCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
+  }
+}
+
+/// Bottom sheet pour sélectionner un contact du téléphone
+class _ContactPickerSheet extends StatefulWidget {
+  final List<Contact> contacts;
+  final ValueChanged<String> onSelected;
+
+  const _ContactPickerSheet({
+    required this.contacts,
+    required this.onSelected,
+  });
+
+  @override
+  State<_ContactPickerSheet> createState() => _ContactPickerSheetState();
+}
+
+class _ContactPickerSheetState extends State<_ContactPickerSheet> {
+  String _search = '';
+
+  List<Contact> get _filtered {
+    if (_search.isEmpty) return widget.contacts;
+    final query = _search.toLowerCase();
+    return widget.contacts.where((c) {
+      final name = c.displayName.toLowerCase();
+      final phones = c.phones.map((p) => p.number).join(' ');
+      return name.contains(query) || phones.contains(query);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final height = MediaQuery.of(context).size.height * 0.7;
+    return Container(
+      height: height,
+      decoration: const BoxDecoration(
+        color: CupertinoColors.systemBackground,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      child: Column(
+        children: [
+          // Barre de drag
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: CupertinoColors.systemGrey3,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // Titre
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Text(
+              "Sélectionner un contact",
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+            ),
+          ),
+          // Barre de recherche
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: CupertinoSearchTextField(
+              placeholder: "Rechercher un contact",
+              onChanged: (val) => setState(() => _search = val),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Liste de contacts
+          Expanded(
+            child: _filtered.isEmpty
+                ? const Center(
+                    child: Text(
+                      "Aucun contact trouvé",
+                      style: TextStyle(color: CupertinoColors.systemGrey),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _filtered.length,
+                    itemBuilder: (context, index) {
+                      final contact = _filtered[index];
+                      final phone = contact.phones.first.number;
+                      return CupertinoListTile(
+                        leading: const Icon(CupertinoIcons.person_circle, size: 36),
+                        title: Text(
+                          contact.displayName,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        subtitle: Text(phone),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          widget.onSelected(phone);
+                        },
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
   }
 }

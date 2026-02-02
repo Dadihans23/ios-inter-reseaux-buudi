@@ -96,9 +96,20 @@ class _ConfirmTransferScreenState extends State<ConfirmTransferScreen> {
           "transfer_id": transferId,
         },
         );
+        return;
       }
 
-      // CAS 2 : ORANGE / MTN / MOOV → on va sur l'écran OTP/USSD
+      else if ( operator == 'mtn'){
+        Get.toNamed(
+        RouteHelper.mtnScreen,
+        arguments: {
+          "transfer_id": transferId,
+        },
+        );
+        return;
+      }
+
+      // CAS 2 : ORANGE → on va sur l'écran OTP/USSD
       Get.toNamed(
         RouteHelper.otpScreen,
         arguments: {
